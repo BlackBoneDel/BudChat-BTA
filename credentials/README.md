@@ -1,113 +1,221 @@
-# Credentials (LOCALES — no se suben a git)
+# Guía completa: Supabase + Cloudflare (desde cero)
 
-Este folder guarda las credenciales reales de **Supabase** y **Cloudflare**.
+Este folder guarda las **credenciales** de Supabase y Cloudflare.
 
-**IMPORTANTE:**
-- Los archivos reales (`supabase.env`, `cloudflare.env`) **NO se suben a git**.
-- Están cubiertos por `.gitignore`.
-- Solo se versionan los `*.example` (plantillas vacías) y este README.
-- Las credenciales solo viven en tu equipo, nunca en GitHub.
+> **IMPORTANTE:** este README y las plantillas `*.example` son lo único que
+> se sube a git. Los archivos reales `supabase.env` y `cloudflare.env` **nunca**
+> se suben (están ignorados por `.gitignore`). El repo es público, así que
+> **ningún secreto debe tocar git**.
 
-## Paso 1: Crear los archivos reales
+**Flujo recomendado (Opción A):** guardas las credenciales **solo en el
+dashboard de Cloudflare**. No en el repo, no en el chat.
 
-Copia las plantillas:
+---
 
-```bash
-cd credentials
-cp supabase.env.example supabase.env
-cp cloudflare.env.example cloudflare.env
-```
+## PARTE 1 — SUPABASE (ya tienes el repo ahí)
 
-Ahora pega los valores reales en cada uno (ver paso 2 y 3).
+### 1. Entrar al dashboard
+- Usa este enlace: https://supabase.com/dashboard
+- Haz **Login** o **Sign up** con tu cuenta (Google/GitHub/email).
+- Al entrar verás la lista de proyectos. Abre **tu proyecto**.
 
-## Paso 2: Sacar credenciales de SUPABASE
+### 2. Aplicar la base de datos (SQL) — IMPORTANTE
+El proyecto recién creado **no tiene tablas**. Hay que crearlas:
 
-1. Ve a https://supabase.com/dashboard y abre tu **proyecto**.
-2. **URL y anon key** (siempre necesarios):
-   - Menu lateral → **Project Settings** → **API**.
-   - Copia **Project URL** → `SUPABASE_URL`.
-   - Copia **anon public key** → `SUPABASE_ANON_KEY`.
-   - (La `service_role` key NO se usa en el frontend, no la pongas aquí.)
-3. **Auth / OAuth** (solo si activas Google/GitHub):
-   - Menu → **Authentication** → **Providers**.
-   - Active **Google**: ve a Google Cloud Console → crea credential de OAuth → copia `Client ID` → `SUPABASE_GOOGLE_CLIENT_ID` y `Client Secret` → `SUPABASE_GOOGLE_CLIENT_SECRET`.
-   - Active **GitHub**: ve a Settings → Developer settings → OAuth Apps → nuevo app → copia `Client ID` y `Client Secret` → campos `SUPABASE_GITHUB_CLIENT_ID` / `SUPABASE_GITHUB_CLIENT_SECRET`.
-   - **Callback URL** que debes registrar en Google/GitHub:
-     ```
-     https://<TU_DOMINIO>/auth/v1/callback
-     ```
-     (o `https://<proyecto>.pages.dev/auth/v1/callback` mientras uses el subdominio gratuito).
-4. **Email / SMTP** (opcional):
-   - Menu → **Authentication** → **Emails**.
-   - En **SMTP** pega host, puerto, usuario y contraseña del SMTP → campos `SUPABASE_SMTP_*`.
-   - Dominio de correo permitido / redirect en **Site URL** y **External SMTP**.
-5. **Aplicar el SQL**:
-   - Menu → **SQL Editor** → `new query` → pega todo `supabase/migrations/0001_init.sql` → **Run**.
-   - O usa el CLI: `supabase db push --linked`.
-6. **Buckets de Storage**:
-   - Menu → **Storage** → **Create bucket** → `uploads` (allow public read).
-   - Crea otro bucket → `avatars`.
+- En el menú lateral izquierdo, ve a **SQL Editor**.
+- Clica **new query**.
+- Pega **todo** el contenido del archivo:
+  `supabase/migrations/0001_init.sql`
+- Clica **Run** (o Ctrl+Enter).
+- Espera a que termine. Verás "Query completed successfully".
 
-## Paso 3: Sacar credenciales de CLOUDFLARE
+> Esto crea las 18 tablas, la seguridad (RLS) y las funciones.
+> **Sin esto la app no funciona.**
 
-Cloudflare Pages **no necesita secretos para desplegar** si conectas el repo de GitHub.
-Pero si quieres usar el CLI (`wrangler`), necesitas:
+### 3. Crear los buckets de Storage
+Los archivos que subas (fotos, archivos) van aquí:
 
-1. **API token**:
-   - Ve a https://dash.cloudflare.com → **My Profile** (arriba derecha) → **API Tokens**.
-   - **Create Token** → **Create Custom Token**.
-   - Permisos: `Account Settings` → **Read**, y `Pages` → **Edit**.
-   - Selecciona tu **Account**.
-   - Copia el token → `CLOUDFLARE_API_TOKEN`.
-2. **Account ID**:
-   - En el dashboard, ve a **Home** → ve el **Account ID** en la barra lateral.
-   - Copia → `CLOUDFLARE_ACCOUNT_ID`.
-3. **Variables de build para el frontend**:
-   - En Cloudflare Pages → tu proyecto → **Settings** → **Environment variables**.
-   - Añade: `VITE_SUPABASE_URL` = tu `SUPABASE_URL`, y `VITE_SUPABASE_ANON_KEY` = tu `SUPABASE_ANON_KEY`.
-   - (Si prefieres, las dejas solo en el `cloudflare.env` local y el deploy script las inyecta.)
+- En el menú lateral ve a **Storage**.
+- Clica **Create bucket**.
+- **Bucket 1:** `uploads`
+  - toggle **Public** a ON (así cualquiera puede ver imágenes/archivos).
+  - Crea.
+- **Bucket 2:** `avatars`
+  - **Public** ON.
+  - Crea.
 
-## Paso 4: Verificar sin exponer (obfuscación)
+### 4. Copiás la URL y la anon key
+Las necesita el frontend:
 
-Para que yo pueda comprobar que los archivos existen y las keys están bien
-**sin que veamos los valores completos**, uso el script de ofuscación:
+- Menú lateral → **Project Settings** → **API**.
+- Copia **Project URL** → esa es tu `SUPABASE_URL`.
+- Copia **anon public key** → esa es tu `SUPABASE_ANON_KEY`.
 
-```bash
-cd credentials
-chmod +x obfuscate.sh
-./obfuscate.sh
-```
+> **NO** copies la `service_role` key. Es solo para el servidor, no para el
+> frontend. Si se expone, tu cuenta está en riesgo.
 
-El script muestra cada key como `abc...xyz  [len=N]`, así confirmamos:
-- que el archivo existe,
-- que la key está presente y no vacía,
-- sin exponer el secreto en el chat.
+### 5. Activar Auth (Google / GitHub) — opcional
+Para que los usuarios puedan entrar con Google o GitHub:
 
-Si quieres ofuscar solo uno: `./obfuscate.sh supabase.env`
+- Menú → **Authentication** → **Providers**.
+- Activá **Google** y/o **GitHub** con el toggle.
+- Para **Google**:
+  - Ve a https://console.cloud.google.com/ → crea un proyecto.
+  - Menú → **APIs & Services → Credentials → Create Credentials → OAuth client**.
+  - Tipo: **Web application**.
+  - En **Authorized redirect URIs** pega:
+    ```
+    https://<TU_DOMINIO>/auth/v1/callback
+    ```
+    (mientras uses el subdominio gratuito: `https://<proyecto>.pages.dev/auth/v1/callback`)
+  - Copia **Client ID** y **Client Secret**.
+- Para **GitHub**:
+  - Ve a https://github.com/settings/developers → **OAuth Apps → New OAuth App**.
+  - **Homepage URL**: tu dominio.
+  - **Authorization callback URL**:
+    ```
+    https://<TU_DOMINIO>/auth/v1/callback
+    ```
+  - Copia **Client ID** y **Client Secret**.
+- Pega los valores en Supabase → **Authentication → Providers** → el proveedor → **Configure**.
 
-## Paso 5: Cómo me las pasas a mí (sin pasarlas por chat)
+### 6. Configurar email (opcional)
+Si quieres que te lleguen correos (para recuperación de contraseña, etc.):
 
-### ⭐ Opción recomendada: credenciales solo en Cloudflare (Opción A)
+- Supabase → **Authentication → Emails**.
+- En **SMTP**, pega host, puerto, usuario y contraseña de tu SMTP.
+- Asegurate que **Site URL** esté correcto.
 
-Como el repo es **público**, la forma más simple y segura es **no poner
-ninguna credencial en el repo ni en el equipo del servidor**:
+### 7. Realtime y permisos
+- En Supabase → **Project Settings → API → anon public key** (ya lo sacaste).
+- Asegúrate que **Realtime** esté activado (normalmente lo es por defecto).
+- La publicación de tablas ya está incluida en el SQL que corriste (paso 2).
 
-1. Guardas las credenciales **solo en el dashboard de Cloudflare Pages**:
-   - Cloudflare Pages → tu proyecto → **Settings → Environment variables**.
-   - Añades `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
-2. El build de Pages las inyecta al compilar. **Nunca están en el código ni en git.**
-3. Para probar localmente, usas `credentials/supabase.env` / `cloudflare.env`
-   **localmente** (ignorados por git), solo en tu máquina.
+---
 
-**Ventaja**: ni el repo público ni nadie con acceso al código puede verlas.
+## PARTE 2 — CLOUDFLARE PAGES (desde cero)
 
-### Opción B: credencial local (solo para pruebas locales)
+Cloudflare Pages **aloja tu frontend gratis** y te da un dominio gratis.
 
-1. Pones las credenciales reales en `credentials/supabase.env` y `credentials/cloudflare.env` **en tu equipo**.
-2. El `.gitignore` las excluye automáticamente — **nunca se suben**.
-3. Yo reviso con `./obfuscate.sh` y veo solo los fragmentos (no los valores completos).
-4. Para usarlas en el despliegue, el script `deploy/deploy.sh` lee estos `.env`
-   y los inyecta como variables de entorno del build de Cloudflare Pages.
+### 1. Crear la cuenta
+- Ve a https://dash.cloudflare.com/login → **Sign Up**.
+- Introduce tu email y una contraseña.
+- Revisa tu email y confirma la cuenta.
 
-**Nunca escribas las credenciales completas en el chat.** Si las necesitas
-en un momento puntual, lo haces a través de estos archivos locales.
+### 2. Entrar al dashboard
+- Después de entrar verás la pantalla de **Home**.
+- Apunta tu **Account ID** (lo necesitas después):
+  - Está en la barra lateral izquierda, bajo "Account ID".
+  - Copia ese número.
+
+### 3. Crear el proyecto de Pages
+- En el menú izquierdo ve a **Pages** (o ve a https://pages.cloudflare.com).
+- Clica **Create project**.
+- Elige **Connect to Git** (la opción azul).
+- Selecciona el repo **BlackBoneDel/BudChat-BTA**.
+- Cloudflare pide permiso → autoriza.
+- **Project name:** `budsin-chat` (o como prefieras).
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- Clica **Deploy**.
+
+> Cloudflare ya detecta el repo. Deploya automáticamente.
+
+### 4. Dar las variables de entorno (IMPORTANTE)
+El frontend necesita la URL y la anon key de Supabase. Las pones aquí,
+**no en el código**:
+
+- En Cloudflare Pages → tu proyecto → **Settings**.
+- Ve a **Environment variables**.
+- Clica **Add variable**:
+  - **Variable:** `VITE_SUPABASE_URL` → Valor: tu `SUPABASE_URL`.
+  - **Variable:** `VITE_SUPABASE_ANON_KEY` → Valor: tu `SUPABASE_ANON_KEY`.
+- Clica **Save**.
+
+> El prefijo `VITE_` es obligatorio. Vite solo expone al frontend las
+> variables que empiezan con `VITE_`.
+
+### 5. Re-desplegar para que tome las variables
+- Después de añadir variables, ve a **Deployments** → **Retry deployment**.
+- O vuelve a **Deploy**. Así el build usa las nuevas variables.
+
+### 6. Obtener tu dominio gratis
+- Cuando el deploy termina, Cloudflare te da una URL como:
+  `https://<proyecto>.pages.dev`
+- Esa URL ya funciona. Es tu **link público gratuito**.
+
+### 7. (Opcional) Dominio propio
+Si quieres un dominio propio:
+
+- En Cloudflare Pages → proyecto → **Settings → Custom domains**.
+- Añade tu dominio (ej. `chat.tudominio.com`).
+- Cloudflare te da los DNS que debes apuntar a su nombre de dominio.
+- Si el dominio lo gestionas en Cloudflare, lo hace automáticamente.
+
+### 8. (Opcional) API token de Cloudflare
+Solo necesitas esto si vas a usar el CLI (`wrangler`) o automatizaciones.
+**No** es necesario para desplegar desde el dashboard:
+
+- https://dash.cloudflare.com → **My Profile** (arriba derecha) → **API Tokens**.
+- **Create Token → Create Custom Token**.
+- Permisos: **Account Settings → Read** y **Pages → Edit**.
+- Selecciona tu **Account**.
+- Crea y copia el token.
+
+---
+
+## PARTE 3 — VERIFICAR QUE ESTÁ BIEN (obfuscación)
+
+Para comprobar que las credenciales están bien **sin exponerlas**, uso el
+script `obfuscate.sh`. Él muestra cada key como `abc...xyz` (solo fragmentos).
+
+Solo se usa si eliges poner credenciales **localmente** (Opción B). Si usas
+**Opción A** (todo en Cloudflare), ni siquiera haces esto.
+
+### Opción A (recomendada): todo en Cloudflare
+- No pongas nada en `supabase.env` ni `cloudflare.env`.
+- Las credenciales viven solo en el dashboard de Cloudflare.
+- Ni el repo, ni yo, ni nadie con acceso al código puede verlas.
+
+### Opción B (local, solo para pruebas)
+Si quieres probar en tu máquina (`npm run dev`):
+
+1. Copias las plantillas:
+   ```bash
+   cd credentials
+   cp supabase.env.example supabase.env
+   cp cloudflare.env.example cloudflare.env
+   ```
+2. Pegas los valores reales en los `.env`.
+3. El `.gitignore` las excluye — **nunca se suben**.
+4. Verificas con:
+   ```bash
+   chmod +x obfuscate.sh
+   ./obfuscate.sh
+   ```
+5. Yo reviso el output y confirmo que las keys existen, sin ver valores completos.
+
+---
+
+## Resumen rápido (checklist)
+
+**Supabase:**
+- [ ] Entrar a supabase.com/dashboard y abrir el proyecto.
+- [ ] Aplicar `supabase/migrations/0001_init.sql` en SQL Editor.
+- [ ] Crear buckets `uploads` y `avatars` (Public ON).
+- [ ] Copiar Project URL y anon public key.
+- [ ] (Opcional) Activar Google/GitHub Auth con sus Client ID/Secret.
+
+**Cloudflare:**
+- [ ] Crear cuenta en cloudflare.com y entrar al dashboard.
+- [ ] Pages → Create project → Connect a `BudChat-BTA`.
+- [ ] Build: `npm run build`, Output: `dist`.
+- [ ] Settings → Environment variables → `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
+- [ ] Re-desplegar y copiar la URL `*.pages.dev`.
+
+**Resultados esperados:**
+- Un link público gratis que carga la app.
+- La app puede autenticar, crear servidores, canales y chatear en tiempo real.
+
+**Nunca** escribas credenciales completas en el chat. Si las necesitas
+en un momento puntual, hazlo a través de los `.env` locales (Opción B).
