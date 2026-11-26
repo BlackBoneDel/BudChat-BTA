@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Build generado (no se versiona)
+dist/
+
+# TS build info
+*.tsbuildinfo
+
+# Variables de entorno (usar .env.example como plantilla)
+.env
+.env.local
+.env.*.local
+
+# Logs / cache
+*.log
+.vite/

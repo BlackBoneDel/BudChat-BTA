@@ -2,15 +2,28 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<link rel="icon" type="image/jpeg" href="https://games.budsin.dev/images.jpeg">
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-WKVW2STJ');</script>
-<!-- End Google Tag Manager -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2866089236522641" crossorigin="anonymous"></script>
+<script src="/chat/chat-config.js"></script>
+<link rel="icon" type="image/jpeg" href="/images.jpeg">
+<!-- Analítica / publicidad: se cargan solo si se configuran en chat-config.js -->
+<script>
+(function(){
+  var C = window.CHAT_CONFIG || {};
+  if (C.GTM_ID) {
+    window.dataLayer = window.dataLayer || [];
+    function g(){g.dataLayer.push(arguments);} g.dataLayer.push({'gtm.start':
+      new Date().getTime(), event:'gtm.js'});
+    var f=document.getElementsByTagName('script')[0],
+    j=document.createElement('script'); j.async=true;
+    j.src='https://www.googletagmanager.com/gtm.js?id='+C.GTM_ID;
+    f.parentNode.insertBefore(j,f);
+  }
+  if (C.ADSENSE_CLIENT) {
+    var a=document.createElement('script'); a.async=true; a.crossOrigin='anonymous';
+    a.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+C.ADSENSE_CLIENT;
+    document.head.appendChild(a);
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#121212">
@@ -42,10 +55,6 @@ input{background:var(--surface);border:1px solid var(--line);color:inherit;borde
 </style>
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WKVW2STJ"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 <header><h1>Moderación · Budsin Chat</h1><a href="/chat/">← Volver al chat</a><div class="sp"></div><span id="state">Conectando…</span></header>
 <div id="gate" hidden><p>Esta página es solo para administradores. Entra con tu cuenta de Google.</p><button class="b go" id="signin">Entrar con Google</button></div>
 <div id="app" hidden>
@@ -57,7 +66,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 (function () {
 'use strict';
 var $ = function (s) { return document.querySelector(s); };
-var FB_CONFIG = { apiKey: 'AIzaSyCBN77CtgH-J5NYWhVyW6p1jldXdxbok-U', authDomain: 'juanjo-games.firebaseapp.com', projectId: 'juanjo-games', storageBucket: 'juanjo-games.firebasestorage.app', messagingSenderId: '927529249414', appId: '1:927529249414:web:410a686dc7f0da25ec3f07' };
+var FB_CONFIG = (window.CHAT_CONFIG && window.CHAT_CONFIG.FB) || { apiKey: '', authDomain: '', projectId: '', storageBucket: '', messagingSenderId: '', appId: '' };
 var FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.5/';
 var WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/chat/ws';
 var S = { editBox: {}, ws: null, fb: null, user: null, tab: 'reports', reports: [], users: [], rooms: [], q: '', admin: false, retry: 0 };
@@ -69,6 +78,12 @@ function wsend(o) { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify(
 function when(ts) { return ts ? new Date(ts).toLocaleString() : '—'; }
 
 function boot() {
+  var C = window.CHAT_CONFIG || {};
+  if (C.APP_NAME) {
+    document.title = 'Moderación · ' + C.APP_NAME;
+    var h = document.querySelector('header h1');
+    if (h) h.textContent = 'Moderación · ' + C.APP_NAME;
+  }
   var have = window.firebase && window.firebase.auth;
   (have ? Promise.resolve() : loadScript(FB_BASE + 'firebase-app-compat.js').then(function () { return loadScript(FB_BASE + 'firebase-auth-compat.js'); })).then(function () {
     var app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(FB_CONFIG);
@@ -179,6 +194,5 @@ function render() {
 boot();
 })();
 </script>
-<script src="https://games.budsin.dev/classroom-hotkey.js"></script>
 </body>
 </html>

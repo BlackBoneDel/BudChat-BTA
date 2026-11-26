@@ -2,15 +2,28 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<link rel="icon" type="image/jpeg" href="https://games.budsin.dev/images.jpeg">
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-WKVW2STJ');</script>
-<!-- End Google Tag Manager -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2866089236522641" crossorigin="anonymous"></script>
+<script src="/chat/chat-config.js"></script>
+<link rel="icon" type="image/jpeg" href="/images.jpeg">
+<!-- Analítica / publicidad: se cargan solo si se configuran en chat-config.js -->
+<script>
+(function(){
+  var C = window.CHAT_CONFIG || {};
+  if (C.GTM_ID) {
+    window.dataLayer = window.dataLayer || [];
+    function g(){g.dataLayer.push(arguments);} g.dataLayer.push({'gtm.start':
+      new Date().getTime(), event:'gtm.js'});
+    var f=document.getElementsByTagName('script')[0],
+    j=document.createElement('script'); j.async=true;
+    j.src='https://www.googletagmanager.com/gtm.js?id='+C.GTM_ID;
+    f.parentNode.insertBefore(j,f);
+  }
+  if (C.ADSENSE_CLIENT) {
+    var a=document.createElement('script'); a.async=true; a.crossOrigin='anonymous';
+    a.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+C.ADSENSE_CLIENT;
+    document.head.appendChild(a);
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Budsin Chat</title>
@@ -239,14 +252,10 @@ body.has-bmmini #app{height:calc(100% - 92px)}
 </style>
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WKVW2STJ"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 <div id="app">
   <aside id="side">
-    <div class="ws"><span class="mark">B</span><b>Budsin Chat</b></div>
-    <a class="back" id="backLink" href="https://games.budsin.dev/">Volver a Budsin Games</a>
+    <div class="ws"><span class="mark">B</span><b id="appName">Budsin Chat</b></div>
+    <a class="back" id="backLink" href="#">Volver a Budsin Games</a>
     <nav id="rooms"></nav>
     <div id="meBar"><button id="me" type="button" hidden></button></div>
   </aside>
@@ -295,6 +304,33 @@ document.documentElement.lang = lang;
 
 var T = {}; Object.keys(TXT.es).forEach(function (k) { T[k] = TXT[lang][k] != null ? TXT[lang][k] : TXT.es[k]; });
 T.err = Object.assign({}, TXT.es.err, TXT[lang].err); T.err.blocked = Object.assign({}, TXT.es.err.blocked, TXT[lang].err.blocked);
+
+// ---- aplicar configuración de la app (chat-config.js) a los textos ----
+(function () {
+  var C = window.CHAT_CONFIG || {};
+  // nombre de la app en las frases visibles
+  if (C.APP_NAME) {
+    Object.keys(T).forEach(function (k) {
+      if (typeof T[k] === 'string') {
+        T[k] = T[k].split('Budsin Chat').join(C.APP_NAME).split('Budsin Games').join(C.APP_NAME);
+      }
+    });
+  }
+  // dominios permitidos en los mensajes de bloqueo / normas
+  var links = C.ALLOWED_LINKS && C.ALLOWED_LINKS.length ? C.ALLOWED_LINKS.join(', ') : null;
+  if (links) {
+    T.err.blocked.link = T.err.blocked.link.replace(/budsin\.dev,\s*google\.com\s*(?:y|e)\s*prescott\.edu\.pe/, links);
+    ['welcome', 'rules'].forEach(function (k) {
+      if (typeof T[k] === 'string') T[k] = T[k].replace(/Budsin, Google (?:y|e) Prescott/, links);
+    });
+  }
+  // correo de contacto en mensajes de sanción
+  if (C.CONTACT_EMAIL) {
+    Object.keys(T).forEach(function (k) {
+      if (typeof T[k] === 'string') T[k] = T[k].split('budsinjys@gmail.com').join(C.CONTACT_EMAIL);
+    });
+  }
+})();
 function fmt(s, v) { return String(s).replace(/\{(\w+)\}/g, function (_, k) { return v && v[k] != null ? v[k] : ''; }); }
 function errText(code, why) { if (code === 'blocked') return T.err.blocked[why] || T.err.blocked.profanity; var e = T.err[code]; return typeof e === 'string' ? e : T.err.server_error; }
 
@@ -354,7 +390,8 @@ function legalNote() {
   var parts = T.legal.split(/\{(terms|privacy|rules)\}/);
   parts.forEach(function (x, i) {
     if (i % 2 === 0) { if (x) p.appendChild(document.createTextNode(x)); return; }
-    var a = el('a', null, x === 'terms' ? T.legalTerms : x === 'privacy' ? T.legalPrivacy : T.legalRules); a.href = x === 'terms' ? 'https://budsin.dev/terminos' : x === 'privacy' ? 'https://budsin.dev/privacidad' : 'https://budsin.dev/terminos#normas'; a.target = '_blank'; a.rel = 'noopener'; a.style.color = 'var(--accent)'; p.appendChild(a);
+    var L = (window.CHAT_CONFIG && window.CHAT_CONFIG.LEGAL) || {};
+    var a = el('a', null, x === 'terms' ? T.legalTerms : x === 'privacy' ? T.legalPrivacy : T.legalRules); a.href = x === 'terms' ? (L.terms || '/terminos') : x === 'privacy' ? (L.privacy || '/privacidad') : (L.rules || '/terminos#normas'); a.target = '_blank'; a.rel = 'noopener'; a.style.color = 'var(--accent)'; p.appendChild(a);
   });
   return p;
 }
@@ -365,7 +402,7 @@ function avatar(id, cls) {
 
 // ---------- estado ----------
 var S = { pendingShare: null, features: { images: false, avatars: false, audio: true, links: [] }, myStickers: [], revealed: {}, stTab: 'emoji', friends: [], incoming: [], outgoing: [], blocked: [], unread: {}, classes: [], members: {}, wantClass: null, fb: null, user: null, ws: null, authed: false, me: null, avatars: [], rooms: {}, cur: null, retry: 0, reconnect: null, gameRooms: [], wantJoin: null, closing: false, ctx: null, typing: {}, drafts: {}, pill: 0, lastTyped: 0, fatal: false };
-var FB_CONFIG = { apiKey: 'AIzaSyCBN77CtgH-J5NYWhVyW6p1jldXdxbok-U', authDomain: 'juanjo-games.firebaseapp.com', projectId: 'juanjo-games', storageBucket: 'juanjo-games.firebasestorage.app', messagingSenderId: '927529249414', appId: '1:927529249414:web:410a686dc7f0da25ec3f07' };
+var FB_CONFIG = (window.CHAT_CONFIG && window.CHAT_CONFIG.FB) || { apiKey: '', authDomain: '', projectId: '', storageBucket: '', messagingSenderId: '', appId: '' };
 var FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.5/';
 var WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/chat/ws';
 var EDIT_MS = 15 * 60000;
@@ -472,6 +509,14 @@ function gate(kind, msg) {
 // ---------- cuenta ----------
 function boot() {
   gate('loading');
+  // --- aplicar configuración de la app (chat-config.js) ---
+  var C = window.CHAT_CONFIG || {};
+  if (C.APP_NAME) {
+    if ($('#appName')) $('#appName').textContent = C.APP_NAME;
+    if ($('#title')) $('#title').textContent = C.APP_NAME;
+    document.title = C.APP_NAME;
+  }
+  if (C.BACK_URL && $('#backLink')) $('#backLink').href = C.BACK_URL;
   var have = window.firebase && window.firebase.auth;
   (have ? Promise.resolve() : loadScript(FB_BASE + 'firebase-app-compat.js').then(function () { return loadScript(FB_BASE + 'firebase-auth-compat.js'); })).then(function () {
     var app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(FB_CONFIG);
@@ -739,7 +784,10 @@ function linkOk(u) {
   var ok = hs.some(function (r) { return h === r || h.slice(-r.length - 1) === '.' + r; });
   return ok ? { host: h, hs: hs } : null;
 }
-function isBudsin(h) { return h === 'budsin.dev' || h.slice(-10) === '.budsin.dev'; }
+function isBudsin(h) {
+  var d = (window.CHAT_CONFIG && window.CHAT_CONFIG.DOMAIN) || 'chat.example.com';
+  return h === d || h.slice(-(d.length + 1)) === '.' + d;
+}
 function mentionNodes(f, text) {
   var re = /@([A-Za-z0-9][A-Za-z0-9._-]{1,18}[A-Za-z0-9])/g, last = 0, mm;
   while ((mm = re.exec(text))) {
@@ -1115,6 +1163,16 @@ boot();
 })();
 </script>
 <script src="/bm-mini.js?v=4" defer></script>
-<script src="https://games.budsin.dev/classroom-hotkey.js"></script>
+<script>
+// Hotkey de sala de juego: solo si se configura HOTKEY_SRC en chat-config.js
+(function(){
+  var C = window.CHAT_CONFIG || {};
+  if (C.HOTKEY_SRC) {
+    var s = document.createElement('script');
+    s.src = C.HOTKEY_SRC;
+    document.body.appendChild(s);
+  }
+})();
+</script>
 </body>
 </html>
